@@ -79,6 +79,43 @@ table.t tr.click:hover{background:#f8f8fe;cursor:pointer}
 .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:18px 0}
 .tabs button{border:0;background:none;padding:10px 14px;font-weight:600;color:var(--ink2);border-bottom:3px solid transparent}
 .tabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+a.btn{display:inline-block;text-align:center}
+.side-home{display:block;margin:6px 0 10px;padding:6px 12px;font-size:13px;color:#9aa0d8}
+.side-home:hover{color:#fff}
+
+/* Public landing page (no sidebar) */
+.land{max-width:1120px;margin:0 auto;padding:20px 24px 40px}
+.land-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 18px}
+.land-logo{padding:0;color:var(--ink)}
+.hero{background:linear-gradient(135deg,var(--side),var(--brand) 70%,var(--teal) 130%);color:#fff;border-radius:calc(var(--radius) + 6px);padding:64px 48px 40px;box-shadow:var(--shadow)}
+.hero .eyebrow{display:inline-block;color:#8ff0ec;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.hero h1{font-size:56px;margin:12px 0;letter-spacing:-.03em;line-height:1.05}
+.hero p{font-size:17px;line-height:1.65;max-width:720px;color:#e8eaff;margin:0 0 26px}
+.hero-cta{background:var(--teal);font-size:16px;padding:13px 26px}
+.hero-cta:hover{background:#0b8f8e}
+.stats{display:flex;flex-wrap:wrap;gap:20px 44px;margin-top:36px;border-top:1px solid rgba(255,255,255,.22);padding-top:22px}
+.stats b{display:block;font-size:28px;letter-spacing:-.02em}
+.stats span{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#c9cdf5}
+.feats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
+.feat{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--teal);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px}
+.feat .n{color:var(--teal);font-weight:700;font-size:13px;letter-spacing:.06em}
+.feat h3{margin:8px 0 6px;font-size:18px}
+.feat p{margin:0;color:var(--ink2);font-size:14.5px;line-height:1.6}
+.land-cta{text-align:center;padding:36px 0 8px}
+.land-cta p{margin:10px 0 0;font-size:13px}
+.land-foot{text-align:center;color:var(--mute);font-size:13px;padding-top:24px}
+@media (max-width:980px){
+  .feats{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:560px){
+  .land{padding:14px 16px 32px}
+  .hero{padding:36px 22px 28px}
+  .hero h1{font-size:38px}
+  .hero p{font-size:15.5px}
+  .hero-cta{display:block}
+  .feats{grid-template-columns:1fr}
+  .stats{gap:16px 28px}
+}
 @media (max-width:980px){
   .shell{grid-template-columns:1fr}
   .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}

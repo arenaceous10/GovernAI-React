@@ -1,7 +1,8 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { api, ApiError, TIER, TierKey, ROLE_LABEL, getSession } from "@/lib/api";
+import { api, ApiError, ROLE_LABEL, useSession, tierOf } from "@/lib/api";
 import TierPill from "@/components/TierPill";
 import Ring from "@/components/Ring";
 
@@ -16,16 +17,17 @@ export default function SystemPage() {
   const [msg, setMsg] = useState<{ ok?: string; err?: string; blockers?: string[] }>({});
   const [busy, setBusy] = useState(false);
   const [comment, setComment] = useState("");
+  const { role } = useSession();
 
   const load = useCallback(() => {
     return Promise.all([api(`/systems/${id}`), api("/config")]).then(([a, b]) => { setD(a); setCfg(b); })
       .catch((e) => setMsg({ err: e.message }));
   }, [id]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { setD(null); setTab(0); setMsg({}); load(); }, [load]);
 
-  async function act(fn: () => Promise<any>, ok: string) {
+  async function act(fn: () => Promise<any>, ok: string, reload = true) {
     setBusy(true); setMsg({});
-    try { await fn(); setMsg({ ok }); await load(); }
+    try { await fn(); setMsg({ ok }); if (reload) await load(); }
     catch (e: any) {
       if (e instanceof ApiError && e.blockers) setMsg({ blockers: e.blockers });
       else setMsg({ err: e.message });
@@ -33,10 +35,9 @@ export default function SystemPage() {
     setBusy(false);
   }
 
-  if (!d || !cfg) return <>{msg.err ? <div className="err">{msg.err}</div> : <p className="muted">Loading...</p>}</>;
+  if (!d || !cfg) return <>{msg.err ? <><div className="err">{msg.err}</div><Link href="/systems" className="btn ghost sm">Back to AI systems</Link></> : <p className="muted">Loading...</p>}</>;
   const s = d.system;
-  const role = getSession().role;
-  const color = TIER[s.tier as TierKey].color;
+  const color = tierOf(s.tier).color;
   const myApproval = d.approvals.find((a: any) => a.stage === s.stage && a.role === role);
   const canDecide = d.approvers.includes(role);
 
@@ -52,7 +53,7 @@ export default function SystemPage() {
         </div>
         {role === "governance_admin" && (
           <button className="btn danger sm" disabled={busy}
-            onClick={() => { if (confirm("Delete this system and everything attached to it?")) act(async () => { await api(`/systems/${id}`, { method: "DELETE" }); router.push("/systems"); }, "Deleted"); }}>
+            onClick={() => { if (confirm("Delete this system and everything attached to it?")) act(async () => { await api(`/systems/${id}`, { method: "DELETE" }); router.push("/systems"); }, "Deleted", false); }}>
             Delete system
           </button>
         )}
@@ -129,7 +130,7 @@ export default function SystemPage() {
       {tab === 1 && (
         <div className="grid g2">
           <div className="card">
-            <h2>Why it is {TIER[s.tier as TierKey].label}</h2>
+            <h2>Why it is {tierOf(s.tier).label}</h2>
             <ul style={{ paddingLeft: 18, margin: 0 }}>{(s.risk?.reasons || []).map((r: string) => <li key={r} style={{ margin: "6px 0" }}>{r}</li>)}</ul>
             <p className="muted" style={{ marginTop: 14 }}>The tier is set by fixed rules, never by AI. Cutoffs: below 30 Minimal, 30 to 54 Limited, 55 and above High.</p>
           </div>
@@ -155,8 +156,8 @@ export default function SystemPage() {
         <div className="card">
           <h2>AI risk screening</h2>
           <p className="muted">An AI-written note on laws in scope and possible gaps. It explains and suggests. It never sets the tier.</p>
-          <button className="btn" disabled={busy} onClick={() => act(() => api(`/systems/${id}/screen`, { method: "POST" }), "Screening note saved")}>Run screening</button>
-          {d.screenings[0] && <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", background: "#f7f8fd", padding: 16, borderRadius: 12, marginTop: 16 }}>{d.screenings[0].note}</pre>}
+          <button className="btn" disabled={busy} onClick={() => act(() => api(`/systems/${id}/screen`, { method: "POST" }), "Screening note saved")}>{busy ? "Running..." : "Run screening"}</button>
+          {d.screenings?.[0] && <pre style={{ whiteSpace: "pre-wrap", fontFamily: "inherit", background: "#f7f8fd", padding: 16, borderRadius: 12, marginTop: 16 }}>{d.screenings[0].note}</pre>}
           <p className="muted">AI-assisted risk screening, not legal advice.</p>
         </div>
       )}

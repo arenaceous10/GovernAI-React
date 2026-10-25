@@ -1,20 +1,37 @@
+import { useEffect, useState } from "react";
+
 // Talks to the FastAPI backend. In demo mode the chosen role travels as a header.
-export const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// The base URL comes only from NEXT_PUBLIC_API_URL (set it in Vercel and in frontend/.env.local).
+export const API = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
 
 export type Session = { role: string; name: string };
+const GUEST: Session = { role: "submitter", name: "Guest" };
 
 export function getSession(): Session {
-  if (typeof window === "undefined") return { role: "submitter", name: "Guest" };
+  if (typeof window === "undefined") return GUEST;
   try {
     const s = JSON.parse(localStorage.getItem("governai_session") || "null");
-    if (s && s.role) return s;
+    if (s && typeof s.role === "string" && s.role in ROLE_LABEL) return { role: s.role, name: String(s.name ?? "") };
   } catch {}
-  return { role: "submitter", name: "Guest" };
+  return GUEST;
 }
 
 export function setSession(s: Session) {
-  localStorage.setItem("governai_session", JSON.stringify(s));
+  try { localStorage.setItem("governai_session", JSON.stringify(s)); } catch {}
   window.dispatchEvent(new Event("governai-session"));
+}
+
+// Re-renders the caller whenever the role or name changes (sidebar, another tab) and after a refresh.
+export function useSession(): Session {
+  const [s, setS] = useState<Session>(GUEST);
+  useEffect(() => {
+    const h = () => setS(getSession());
+    h();
+    window.addEventListener("governai-session", h);
+    window.addEventListener("storage", h);
+    return () => { window.removeEventListener("governai-session", h); window.removeEventListener("storage", h); };
+  }, []);
+  return s;
 }
 
 export class ApiError extends Error {
@@ -28,6 +45,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T = any>(path: string, opts: { method?: string; body?: any } = {}): Promise<T> {
+  if (!API) throw new ApiError(0, "NEXT_PUBLIC_API_URL is not set, so the app does not know where the API is.");
   const s = getSession();
   const res = await fetch(API + path, {
     method: opts.method || "GET",
@@ -68,3 +86,5 @@ export const TIER = {
   prohibited: { label: "UNACCEPTABLE", color: "#c2234a", soft: "#fbe1e8" },
 } as const;
 export type TierKey = keyof typeof TIER;
+// Unknown tiers from the API fall back to MINIMAL instead of crashing the page.
+export const tierOf = (t: string) => TIER[t as TierKey] || TIER.low;

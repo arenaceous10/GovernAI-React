@@ -2,10 +2,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { api, getSession, setSession, ROLE_LABEL } from "@/lib/api";
+import { api, useSession, setSession, ROLE_LABEL } from "@/lib/api";
 
 const NAV = [
-  { href: "/", label: "Dashboard" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/systems", label: "AI systems" },
   { href: "/register", label: "Register a system" },
   { href: "/queue", label: "My queue" },
@@ -15,17 +15,13 @@ const NAV = [
 
 export default function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const [sess, setSess] = useState({ role: "submitter", name: "Guest" });
+  const sess = useSession();
   const [roles, setRoles] = useState<string[]>(Object.keys(ROLE_LABEL));
   const [alerts, setAlerts] = useState(0);
   const [demo, setDemo] = useState(true);
 
   useEffect(() => {
-    setSess(getSession());
-    const h = () => setSess(getSession());
-    window.addEventListener("governai-session", h);
     api("/config").then((c) => { setRoles(c.roles); setDemo(!!c.demo_mode); }).catch(() => {});
-    return () => window.removeEventListener("governai-session", h);
   }, []);
 
   useEffect(() => {
@@ -35,16 +31,17 @@ export default function Shell({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="side">
-        <div className="logo"><i /> GovernAI</div>
+        <Link href="/" className="logo"><i /> GovernAI</Link>
         <nav className="nav">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}
-              className={(n.href === "/" ? path === "/" : path.startsWith(n.href)) ? "on" : ""}>
+              className={path?.startsWith(n.href) ? "on" : ""}>
               {n.label}
               {n.href === "/alerts" && alerts > 0 && <span className="badge">{alerts}</span>}
             </Link>
           ))}
         </nav>
+        <Link href="/" className="side-home">Back to home</Link>
         <div className="who">
           <label>Acting as</label>
           <select value={sess.role} onChange={(e) => setSession({ ...sess, role: e.target.value })}>
