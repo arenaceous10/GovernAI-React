@@ -13,6 +13,9 @@ SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]      # secret, server only
 ALLOWED = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")]
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+# DEMO MODE: lets the front end pick a role from a dropdown (like the Streamlit demo). No real sign-in.
+# Off unless you set DEMO_MODE=true. Turn it off before real users arrive.
+DEMO_MODE = os.environ.get("DEMO_MODE", "false").lower() == "true"
 
 sb: Client = create_client(SUPABASE_URL, SERVICE_KEY)
 app = FastAPI(title="GovernAI API", version="1.0")
@@ -42,8 +45,15 @@ class User(BaseModel):
     role: str
 
 
-def current_user(authorization: Optional[str] = Header(None)) -> User:
-    """Validates the Supabase JWT, then looks up the user's role in app_metadata."""
+def current_user(authorization: Optional[str] = Header(None),
+                 x_demo_role: Optional[str] = Header(None),
+                 x_demo_name: Optional[str] = Header(None)) -> User:
+    """Real mode: validates the Supabase JWT and reads the role from app_metadata.
+    Demo mode (DEMO_MODE=true): trusts the role picked in the UI. Never use demo mode with real data."""
+    if DEMO_MODE and x_demo_role:
+        role = x_demo_role if x_demo_role in ROLES else "submitter"
+        name = (x_demo_name or role).strip()[:60] or role
+        return User(id=f"demo-{role}", email=name, role=role)
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(401, "Sign in required")
     token = authorization.split(" ", 1)[1]
@@ -171,7 +181,7 @@ def health():
 def config():
     return {"tiers": E.TIER_LABEL, "tier_order": E.TIER_ORDER, "stages": E.STAGES, "dims": E.DIMS,
             "weights": E.WEIGHTS, "prohibited": E.PROHIBITED, "triggers": E.TRIGGERS, "roles": ROLES,
-            "checklist": CHECKLIST}
+            "checklist": CHECKLIST, "demo_mode": DEMO_MODE}
 
 
 @app.get("/me")
